@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="apple-touch-icon" href="idea.png"/>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+<script type="text/javascript">
+
+// How to use this mini-tool: 
+// 1) either call it from localhost or put it up on a server somewhere, it has to be called over http:// or https://, can't be file://
+// 2) call the url, and pass in 2 paramaters: creator id and api key (as "key"), like "http://myhost.com/idea_form.html?key=xxxx&creator=1234"
+// 3) Bookmark that URL for easy access. Do NOT post that URL anywhere, as it exposes your API key
+// 4) This is also designed to work on iPhone, hence the touch icon. If it's up on a server, you can open the URL in safari and add it to the home screen.
+// This was a quick and dirty / cheap and cheerful tool, hope this is useful! @calebhanson, vp product @raptmedia
+
+$(document).ready(function(){
+	function getUrlParameter(sParam){
+		var sPageURL = window.location.search.substring(1);
+	    var sURLVariables = sPageURL.split('&');
+	    for (var i = 0; i < sURLVariables.length; i++) 
+	    {
+	        var sParameterName = sURLVariables[i].split('=');
+	        if (sParameterName[0] === sParam) 
+	        {
+	            return sParameterName[1];
+	        }
+	    }
+	}
+	function createTag(tag){
+		$("#tagfield").append("<div class='tag' data-id=" + tag.id + ">"+tag.tag+"</div>")
+	}
+	function tagsToIDs(){
+		arr=new Array(); $(".tag.selected").each(function(){ var o={}; o.id=$(this).data("id"); arr.push(o)});
+		return(arr);
+	}
+	function flash(msg, success){
+		$("#flash").html(msg);
+		setTimeout(function(){ $("#flash").html("") }, 8000);
+	}
+	function sendit(){
+		if ($("#title").html() && $("#description").html()){
+			$("#sendit").hide();
+			var i={};
+			i.title = $("#title").html();
+			i.description = $("#description").html()
+			i.tags = tagsToIDs();
+			i.creator={"id":getUrlParameter("creator")};
+			$.ajax({type:"POST", url: posturl, data: JSON.stringify(i)}).done(function(data){ console.log(data); if (data.id){ reset(); flash("Idea added", true); } else {flash("Something has gone wrong", false); $("#sendit").show(); console.log(data)}});
+		}
+	}
+	function reset(){
+		$(".tag").removeClass("selected");
+		$("#title").html("");
+		$("#description").html("");
+		$("#sendit").show();
+	}
+ 	var posturl = "https://api.prodpad.com/v1/ideas?apikey="+getUrlParameter("key");
+	var tagurl = "https://api.prodpad.com/v1/tags?apikey="+getUrlParameter("key");
+
+	(function() {
+		$.getJSON(tagurl)
+	    .done(function( data ) {
+	      tags=data;
+	      for (i=0; i<tags.length; i++){
+	      	createTag(tags[i]);
+	      }
+	    });
+	})();
+	$("body").on("click", ".tag", function(){$(this).toggleClass("selected")});
+	$("body").on("click", "#sendit", function(){ sendit() });
+})
+</script>
+<style type="text/css">
+	body{
+		font-family: Helvetica, arial, sans;
+	}
+	#tagfield{
+		width: 100%;
+	}
+	#tagfield .tag{
+		display: inline-block;
+		background-color: #eee;
+		color:#000;
+		padding:2px 5px;
+		margin:2px;
+	}
+	.tag.selected{
+		background-color: #fc0 !important;
+	}
+	.textfield{
+		width:90%;
+		font-size: large;
+		border:none;
+		padding:5px;
+		margin:15px;
+		color:#333;
+		font-weight: bold;
+		border-bottom: 2px dashed #333;
+	}
+	.textfield:empty:after{
+		content: "Idea title";
+		color:#999;
+	}
+	.textarea{
+		width:90%;
+		border:none;
+		/*height:200px;*/
+		padding:5px;
+		margin:15px;
+		overflow:auto;
+	}
+	.textarea:empty:after{
+		content: "Description of your idea (does not have to be in user story format)";
+		color:#999;
+	}
+	#flash{
+		background-color: rgba(255, 128, 0, 0.5);
+		padding:10px;
+		top:0;
+		position:relative;
+		margin-bottom: 0;
+		transition:all .5s;
+	}
+	#flash:empty{
+		top:-100px;
+		margin-bottom:-20px;
+	}
+	#sendit{
+		background-color: #2093ff;
+		padding:10px;
+		text-decoration: none;
+		font-weight: bold;
+		color:#fff;
+		margin-top:25px;
+		display:inline-block;
+
+	}
+@media all and (max-device-width: 700){
+	html{
+		width:500px;
+	}
+}
+</style>
+</head>
+
+<body>
+<h1 id="flash"></h1>
+<h4>New Idea</h4>
+<div contenteditable="true" placeholder='Idea title (e.g. "Player should include pyrotechnics")' id="title" class="textfield" type="text"></div>
+<div class="textarea" contenteditable="true" placeholder="Idea description" id="description" name="description"></div>
+<h4>Tags</h4>
+<div id="tagfield"></div>
+<a href="javascript:void(0);" id="sendit">Submit the idea</a>
+
+</body>
+</html>
